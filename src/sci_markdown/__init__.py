@@ -133,6 +133,9 @@ def __render(code: list[str | list[str]]) -> str:
                 exec(code_string)
             except Exception as e:
                 print("<pre class='python-error'>")
+                cl, exc, tb = sys.exc_info()
+                line_number = traceback.extract_tb(tb)[-1][1]
+                print(f"<small>Exception on line: {line_number}</small>")
                 print(e)
                 print("</pre>")
             rendered_lines.append(mystdout.getvalue())

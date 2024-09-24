@@ -25,6 +25,7 @@ table(header=keys, rows=[values, values], corner="j")
 
 ```python exec
 table(header=keys, left_header=["day 1", "day 2"], rows=[values, values], corner="j \\ i")
+1/0
 ```
 
 ```python exec

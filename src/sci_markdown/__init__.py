@@ -1,6 +1,7 @@
 import base64
 import os
 import sys
+import traceback
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from io import BytesIO, StringIO
 from typing import Any
@@ -11,13 +12,54 @@ from markdown_it import MarkdownIt
 from mdit_py_plugins import footnote
 
 
-def table(header: list[Any], rows: list[list[Any]]) -> str:
+def pstr(val, precision=2) -> str:
+    if isinstance(val, float):
+        return f"{val:.{precision}f}"
+    else:
+        return str(val)
+
+
+def pprint(*args, precision=2, **kwargs):
+    str_args = []
+    for arg in args:
+        if isinstance(arg, float):
+            str_args.append(f"{arg:.{precision}f}")
+        else:
+            str_args.append(str(arg))
+    print(*str_args, **kwargs)
+
+
+def ctable(header: list[Any], rows: list[list[Any]], precision=2):
     def format_line(line: list[Any]) -> str:
-        return "|" + "|".join(map(str, line))
+        return "|" + "|".join(map(lambda x: pstr(x, precision), line))
 
     header_line = format_line(header)
-    separator_line = "|" + "|".join(["-" * len(str(x)) for x in header])
+    separator_line = "|" + "|".join(["-" for _ in header])
     body_lines = [format_line(row) for row in rows]
+
+    data = "\n".join([header_line, separator_line] + body_lines)
+    pprint(data)
+
+
+def rtable(header: list[Any], rows: list[list[Any]], precision=2):
+    def format_line(header: Any, line: list[Any]) -> str:
+        return (
+            "| **"
+            + pstr(header, precision)
+            + "**"
+            + "|"
+            + "|".join(map(lambda x: pstr(x, precision), line))
+        )
+
+    def header_value(index: int) -> Any:
+        if index < len(header):
+            return header[index]
+        else:
+            return "<!-- -->"
+
+    header_line = format_line("<!-- -->", ["<!-- -->" for _ in header])
+    separator_line = "|-|" + "|".join(["-" for _ in header])
+    body_lines = [format_line(header_value(i), row) for i, row in enumerate(rows)]
 
     data = "\n".join([header_line, separator_line] + body_lines)
     print(data)
@@ -46,9 +88,16 @@ def __render(code: list[str | list[str]]) -> str:
             code_string = "".join(line)
             old_stdout = sys.stdout
             sys.stdout = mystdout = StringIO()
-            exec(code_string)
-            sys.stdout = old_stdout
+            try:
+                exec(code_string)
+            except Exception as e:
+                print("<pre class='python-error'>")
+                if e.__traceback__:
+                    print(f"<small>Error on line {e.__traceback__.tb_lineno}:</small>")
+                print(e)
+                print("</pre>")
             rendered_lines.append(mystdout.getvalue())
+            sys.stdout = old_stdout
         else:
             rendered_lines.append(line)
 
@@ -133,6 +182,11 @@ def main() -> int:
     compile_markdown()
 
     httpd = HTTPServer(("", 8000), SimpleHandler)
-    httpd.serve_forever()
+    try:
+        print("Starting server on port 8000")
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        print("Keyboard interrupt received, exiting")
+        httpd.server_close()
 
     return 0

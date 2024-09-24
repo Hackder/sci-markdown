@@ -41,28 +41,81 @@ def ctable(header: list[Any], rows: list[list[Any]], precision=2):
     pprint(data)
 
 
-def rtable(header: list[Any], rows: list[list[Any]], precision=2):
-    def format_line(header: Any, line: list[Any]) -> str:
-        return (
-            "| **"
-            + pstr(header, precision)
-            + "**"
-            + "|"
-            + "|".join(map(lambda x: pstr(x, precision), line))
-        )
+def table(
+    *_,
+    header: list[Any] | None = None,
+    left_header: list[Any] | None = None,
+    rows: list[list[Any]] | None = None,
+    cols: list[list[Any]] | None = None,
+    corner: Any = None,
+    precision=2,
+):
+    if cols is not None and rows is not None:
+        raise ValueError("both cols and rows cannot be set")
 
-    def header_value(index: int) -> Any:
-        if index < len(header):
-            return header[index]
-        else:
-            return "<!-- -->"
+    if cols is not None:
+        table_rows = max(len(col) for col in cols)
+        table_cols = len(cols)
+    elif rows is not None:
+        table_rows = len(rows)
+        table_cols = max(len(row) for row in rows)
+    else:
+        raise ValueError("either cols or rows must be set")
 
-    header_line = format_line("<!-- -->", ["<!-- -->" for _ in header])
-    separator_line = "|-|" + "|".join(["-" for _ in header])
-    body_lines = [format_line(header_value(i), row) for i, row in enumerate(rows)]
+    left_offset = 0
 
-    data = "\n".join([header_line, separator_line] + body_lines)
-    print(data)
+    table_rows += 1
+    if header is not None:
+        table_cols = max(table_cols, len(header))
+
+    if left_header:
+        table_rows = max(table_rows, len(left_header))
+
+    if corner is not None or left_header is not None:
+        table_cols += 1
+        left_offset = 1
+
+    cells: list[list[Any]] = [
+        [None for _ in range(table_cols)] for _ in range(table_rows)
+    ]
+
+    if corner is not None:
+        cells[0][0] = corner
+
+    if header:
+        for i, header in enumerate(header):
+            cells[0][i + left_offset] = header
+
+    if left_header:
+        for i, header in enumerate(left_header):
+            cells[i + 1][0] = header
+
+    if cols is not None:
+        for i, col in enumerate(cols):
+            for j, cell in enumerate(col):
+                cells[j + 1][i + left_offset] = cell
+
+    if rows is not None:
+        for i, row in enumerate(rows):
+            for j, cell in enumerate(row):
+                cells[i + 1][j + left_offset] = cell
+
+    def print_line(line: list[Any], data_line=True):
+        def escape_none(val: tuple[int, Any]) -> str:
+            i, value = val
+            if value is None:
+                return "<!-- -->"
+            elif left_offset == 1 and i == 0 and data_line:
+                return "**" + pstr(value, precision) + "**"
+            else:
+                return pstr(value, precision)
+
+        print("|", " | ".join(map(escape_none, enumerate(line))), "|")
+
+    print_line(cells[0])
+    print_line(["-" for _ in cells[0]], data_line=False)
+    for row in cells[1:]:
+        print_line(row)
 
 
 def img_plot(fig=None):
@@ -92,8 +145,6 @@ def __render(code: list[str | list[str]]) -> str:
                 exec(code_string)
             except Exception as e:
                 print("<pre class='python-error'>")
-                if e.__traceback__:
-                    print(f"<small>Error on line {e.__traceback__.tb_lineno}:</small>")
                 print(e)
                 print("</pre>")
             rendered_lines.append(mystdout.getvalue())

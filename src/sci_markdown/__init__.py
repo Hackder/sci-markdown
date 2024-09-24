@@ -124,6 +124,7 @@ def img_plot(fig=None):
 
 def __render(code: list[str | list[str]]) -> str:
     rendered_lines = []
+    line_no = 0
     for line in code:
         if isinstance(line, list):
             code_string = "".join(line)
@@ -135,13 +136,15 @@ def __render(code: list[str | list[str]]) -> str:
                 print("<pre class='python-error'>")
                 cl, exc, tb = sys.exc_info()
                 line_number = traceback.extract_tb(tb)[-1][1]
-                print(f"<small>Exception on line: {line_number}</small>")
+                print(f"<small>Exception on line: {line_number + line_no + 1}</small>")
                 print(e)
                 print("</pre>")
             rendered_lines.append(mystdout.getvalue())
             sys.stdout = old_stdout
+            line_no += len(line) + 2
         else:
             rendered_lines.append(line)
+            line_no += 1
 
     return "".join(rendered_lines)
 

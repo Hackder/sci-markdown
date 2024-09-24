@@ -29,18 +29,6 @@ def pprint(*args, precision=2, **kwargs):
     print(*str_args, **kwargs)
 
 
-def ctable(header: list[Any], rows: list[list[Any]], precision=2):
-    def format_line(line: list[Any]) -> str:
-        return "|" + "|".join(map(lambda x: pstr(x, precision), line))
-
-    header_line = format_line(header)
-    separator_line = "|" + "|".join(["-" for _ in header])
-    body_lines = [format_line(row) for row in rows]
-
-    data = "\n".join([header_line, separator_line] + body_lines)
-    pprint(data)
-
-
 def table(
     *_,
     header: list[Any] | None = None,

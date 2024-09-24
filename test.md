@@ -31,6 +31,10 @@ table(header=keys, left_header=["day 1", "day 2"], rows=[values, values], corner
 table(left_header=["day 1", "day 2"], rows=[values, values])
 ```
 
+```python exec
+table(left_header=keys, cols=[values])
+```
+
 
 This is a paragraph.
 This is a paragraph.

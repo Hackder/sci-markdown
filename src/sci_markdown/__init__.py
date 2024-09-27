@@ -1,7 +1,9 @@
 import base64
+import json
 import os
 import sys
 import traceback
+import uuid
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from io import BytesIO, StringIO
 from typing import Any
@@ -27,6 +29,75 @@ def pprint(*args, precision=2, **kwargs):
         else:
             str_args.append(str(arg))
     print(*str_args, **kwargs)
+
+
+chart_colors = [
+    "100, 140, 255",
+    "255, 100, 140",
+    "50, 200, 50",
+    "140, 255, 100",
+    "255, 140, 100",
+]
+
+
+class Chartjs:
+    def __init__(self, keys, chart_type="bar"):
+        self.keys = keys
+        self.chart_type = chart_type
+        self.datasets = []
+
+    def plot(self, data, label=None, char_type=None, color=None):
+        dataset = {
+            "data": list(data),
+        }
+
+        if label is not None:
+            dataset["label"] = label
+
+        if char_type is not None:
+            dataset["type"] = char_type
+
+        if color is not None:
+            dataset["color"] = color
+
+        self.datasets.append(dataset)
+
+    def show(self):
+        datasets = []
+        for i, dataset in enumerate(self.datasets):
+            color = chart_colors[i % len(chart_colors)]
+            if "color" in dataset:
+                color = dataset["color"]
+
+            new_dataset = {
+                "backgroundColor": f"rgba({color}, 0.5)",
+                "borderColor": f"rgba({color}, 1)",
+                "borderWidth": 1,
+            }
+            new_dataset.update(dataset)
+            datasets.append(new_dataset)
+
+        config = {
+            "type": self.chart_type,
+            "data": {
+                "labels": list(self.keys),
+                "datasets": datasets,
+            },
+            "options": {
+                "responsive": True,
+                "scales": {
+                    "y": {
+                        "beginAtZero": True,
+                    }
+                },
+            },
+        }
+        unique_id = str(uuid.uuid4())
+
+        print(f"""
+<canvas data-type="chartjs" id="{unique_id}">
+<div data-chartid="{unique_id}">{json.dumps(config)}</div>
+""")
 
 
 def table(
@@ -112,7 +183,7 @@ def img_plot(fig=None):
 
     # Save the plot to a BytesIO object
     buffer = BytesIO()
-    fig.savefig(buffer, format="png", bbox_inches="tight")
+    fig.savefig(buffer, format="png", bbox_inches="tight", dpi=300)
     buffer.seek(0)
 
     # Encode the BytesIO object to base64
@@ -136,7 +207,18 @@ def __render(code: list[str | list[str]]) -> str:
                 print("<pre class='python-error'>")
                 cl, exc, tb = sys.exc_info()
                 line_number = traceback.extract_tb(tb)[-1][1]
-                print(f"<small>Exception on line: {line_number + line_no + 1}</small>")
+                file_name = traceback.extract_tb(tb)[-1][0]
+
+                if len(file_name) <= 8:
+                    line_number += line_no + 1
+
+                file_name_text = ""
+                if len(file_name) > 8:
+                    file_name_text = f"in {file_name}"
+
+                print(
+                    f"<small>Exception on line: {line_number} {file_name_text}</small>"
+                )
                 print(e)
                 print("</pre>")
             rendered_lines.append(mystdout.getvalue())

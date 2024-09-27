@@ -14,6 +14,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
     integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk"
     crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body,
     html {
@@ -68,6 +69,14 @@
         ],
         // • rendering keys, e.g.:
         throwOnError: false
+      });
+
+      const charts = container.querySelectorAll("canvas[data-type='chartjs']");
+      charts.forEach((chartCanvas) => {
+        const canvasData = container.querySelector(`div[data-chartid='${chartCanvas.id}']`).textContent;
+        const config = JSON.parse(canvasData);
+        const ctx = chartCanvas.getContext('2d');
+        new Chart(ctx, config);
       });
     }, 500);
   </script>

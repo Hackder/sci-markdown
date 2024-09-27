@@ -1,6 +1,6 @@
 ```python exec
-keys = [1,2,3,4,5,6]
-values = np.random.random(6) * 10
+keys = range(1, 20)
+values = np.random.random(len(keys)) * 10
 
 def median(vals):
     sorted_vals = sorted(vals)
@@ -52,10 +52,32 @@ pprint(median(values))
 
 $\frac{1}{2}$
 
+$$
+x = \sqrt{\frac{1}{y - x^2 + 3}}
+$$
+
 ```python exec
 # plot values as bar graph
 fig, ax = plt.subplots()
+fig.set_figwidth(10)
+fig.set_figheight(4)
 ax.set_ylabel("Values")
-ax.plot(keys, values)
+ax.set_xticks(keys)
+ax.plot(keys, values, '--o')
 img_plot(fig)
+```
+
+Chartjs:
+
+```python exec
+values2 = np.random.random(len(keys)) * 10
+values3 = np.random.random(len(keys)) * 10
+values4 = np.random.random(len(keys)) * 10
+values5 = np.random.random(len(keys)) * 10
+
+chart = Chartjs(keys)
+chart.plot(values)
+chart.plot(values2, "Dataset 2")
+chart.plot(values3, "Dataset 3", "line")
+chart.show()
 ```

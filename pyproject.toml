@@ -8,6 +8,9 @@ dependencies = [
     "watchdog>=5.0.2",
     "numpy>=2.1.1",
     "matplotlib>=3.9.2",
+    "fastapi>=0.115.0",
+    "websockets>=13.1",
+    "uvicorn>=0.31.0",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"

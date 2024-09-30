@@ -48,14 +48,9 @@
     }
   </style>
   <script>
-    let last_html = null;
-    setInterval(async () => {
+
+    function renderHtml(html) {
       const container = document.querySelector(".markdown-body");
-      const response = await fetch("http://localhost:8000/data")
-      const html = await response.text()
-      if (last_html == html) {
-        return
-      }
       container.innerHTML = html
       last_html = html
       renderMathInElement(container, {
@@ -78,7 +73,65 @@
         const ctx = chartCanvas.getContext('2d');
         new Chart(ctx, config);
       });
-    }, 500);
+    }
+
+    let abortController = null;
+    async function update() {
+      if (abortController !== null) {
+        abortController.abort();
+      }
+
+      abortController = new AbortController();
+
+      const html = await fetch("/markdown", {
+        method: "GET",
+        signal: abortController.signal
+      }).then(res => res.text())
+
+      abortController = null;
+
+      renderHtml(html);
+    }
+
+    let retries = 0;
+    function setupListener() {
+      if (retries > 3) return;
+
+      const ws = new WebSocket("ws://localhost:8000/live-update");
+
+      ws.onmessage = function (event) {
+        const message = JSON.parse(event.data);
+        if (message.type === "update") {
+          renderHtml(message.data);
+        }
+      };
+
+      ws.onopen = function (event) {
+        console.log("Connected to websocket");
+        retires = 0;
+      };
+
+      ws.onclose = function (event) {
+        ws.close();
+        setTimeout(() => {
+          retries++;
+          setupListener();
+        }, 1000);
+      };
+
+      ws.onerror = function (event) {
+        console.log("Error in websocket: ", event);
+        setTimeout(() => {
+          retries++;
+          setupListener();
+        }, 1000);
+      };
+    }
+
+    window.addEventListener("load", () => {
+      setupListener();
+      update()
+    });
   </script>
 </head>
 

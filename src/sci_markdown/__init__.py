@@ -1,15 +1,20 @@
+import asyncio
 import base64
+import functools
 import json
 import os
 import sys
 import traceback
 import uuid
-from http.server import BaseHTTPRequestHandler, HTTPServer
 from io import BytesIO, StringIO
 from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
+import uvicorn
+from fastapi import FastAPI, WebSocket
+from fastapi.responses import HTMLResponse
+from fastapi.websockets import WebSocketState
 from markdown_it import MarkdownIt
 from mdit_py_plugins import footnote
 
@@ -198,13 +203,12 @@ def __render(code: list[str | list[str]]) -> str:
     line_no = 0
     for line in code:
         if isinstance(line, list):
-            code_string = "".join(line)
+            code_string = "\n".join(line)
             old_stdout = sys.stdout
             sys.stdout = mystdout = StringIO()
             try:
                 exec(code_string)
             except Exception as e:
-                print("<pre class='python-error'>")
                 cl, exc, tb = sys.exc_info()
                 line_number = traceback.extract_tb(tb)[-1][1]
                 file_name = traceback.extract_tb(tb)[-1][0]
@@ -216,6 +220,7 @@ def __render(code: list[str | list[str]]) -> str:
                 if len(file_name) > 8:
                     file_name_text = f"in {file_name}"
 
+                print('<pre class="python-error">')
                 print(
                     f"<small>Exception on line: {line_number} {file_name_text}</small>"
                 )
@@ -228,7 +233,7 @@ def __render(code: list[str | list[str]]) -> str:
             rendered_lines.append(line)
             line_no += 1
 
-    return "".join(rendered_lines)
+    return "\n".join(rendered_lines)
 
 
 md = (
@@ -246,22 +251,18 @@ md = (
 )
 
 
-latest_html = None
-last_src = None
-
-
-def compile_markdown():
-    global latest_html, last_src
+def read_source():
     filename = sys.argv[1]
     with open(filename, "r") as f:
-        lines = f.readlines()
+        content = f.read()
 
-    if last_src == lines:
-        return latest_html
-    last_src = lines
+    return content
 
+
+@functools.lru_cache(maxsize=32)
+def compile_markdown(content: str):
+    lines = content.split("\n")
     code = []
-
     it = iter(lines)
     for line in it:
         if line.startswith("```python exec"):
@@ -279,44 +280,45 @@ def compile_markdown():
     new_content = __render(code)
 
     html = md.render(new_content)
-    latest_html = html
     return html
 
 
-class SimpleHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        global latest_html
-        # Set response code to 200 (OK)
-        self.send_response(200)
-
-        # Set the headers
-        self.send_header("Content-type", "text/html")
-        self.end_headers()
-
-        if self.path == "/":
-            with open(
-                os.path.join(os.path.dirname(__file__), "default_page.html"), "r"
-            ) as f:
-                self.wfile.write(f.read().encode("utf-8"))
-            return
-
-        # Send the string as the response body
-        html = str(compile_markdown())
-        self.wfile.write(html.encode("utf-8"))
+app = FastAPI()
 
 
-PORT = 8000
+@app.get("/", response_class=HTMLResponse)
+async def read_root():
+    with open(os.path.join(os.path.dirname(__file__), "default_page.html"), "r") as f:
+        return f.read()
 
 
-def main() -> int:
-    compile_markdown()
+@app.get("/markdown", response_class=HTMLResponse)
+async def read_markdown():
+    content = read_source()
+    return compile_markdown(content)
 
-    httpd = HTTPServer(("", PORT), SimpleHandler)
-    try:
-        print(f"Starting server on http://localhost:{PORT}")
-        httpd.serve_forever()
-    except KeyboardInterrupt:
-        print("Keyboard interrupt received, exiting")
-        httpd.server_close()
 
-    return 0
+@app.websocket("/live-update")
+async def ws_live_update(websocket: WebSocket):
+    await websocket.accept()
+    source = read_source()
+    while True:
+        await asyncio.sleep(0.5)
+
+        try:
+            await websocket.send_json({"type": "heartbeat"})
+        except Exception:
+            break
+
+        new_source = read_source()
+        if new_source == source:
+            continue
+
+        source = new_source
+        compiled = compile_markdown(new_source)
+
+        await websocket.send_json({"type": "update", "data": compiled})
+
+
+def main():
+    uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -81,3 +81,22 @@ chart.plot(values2, "Dataset 2")
 chart.plot(values3, "Dataset 3", "line")
 chart.show()
 ```
+
+Another
+
+```python exec
+graph = Graph(xrange=[-10,10], yrange=[-2,2])
+graph.fig.set_figwidth(10)
+graph.fig.set_figheight(7)
+graph.plot_between(lambda x: np.sin(x), lambda x: np.cos(x))
+graph.show()
+```
+
+```mermaid
+graph TD
+    A[Hard] -->|Text| B(Round)
+    B --> C{Decision}
+    C -->|One| D[Result 1]
+    C -->|Two| E[Result 2]
+```
+

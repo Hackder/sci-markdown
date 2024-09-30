@@ -7,14 +7,13 @@ import sys
 import traceback
 import uuid
 from io import BytesIO, StringIO
-from typing import Any
+from typing import Any, Callable
 
 import matplotlib.pyplot as plt
 import numpy as np
 import uvicorn
 from fastapi import FastAPI, WebSocket
 from fastapi.responses import HTMLResponse
-from fastapi.websockets import WebSocketState
 from markdown_it import MarkdownIt
 from mdit_py_plugins import footnote
 
@@ -99,10 +98,43 @@ class Chartjs:
         }
         unique_id = str(uuid.uuid4())
 
-        print(f"""
-<canvas data-type="chartjs" id="{unique_id}">
+        print(f"""<canvas data-type="chartjs" id="{unique_id}">
 <div data-chartid="{unique_id}">{json.dumps(config)}</div>
+</canvas>
 """)
+
+
+class Graph:
+    def __init__(self, xrange=[-1, 1], yrange=[-1, 1]):
+        self.xrange = xrange
+        self.yrange = yrange
+        self.fig, self.ax = plt.subplots()
+        self.ax.set_xlim(xrange)
+        self.ax.set_ylim(yrange)
+
+    def plot(self, function: Callable[[float], float | int]):
+        values = np.linspace(self.xrange[0], self.xrange[1], 100)
+        self.ax.plot(values, function(values))
+
+    def plot_between(
+        self,
+        fu1: Callable[[float], float | int],
+        fn2: Callable[[float], float | int],
+        compare: str | None = None,
+        **kwargs,
+    ):
+        custom_kwargs = {
+            "alpha": 0.5,
+            "interpolate": True,
+        }
+        custom_kwargs.update(kwargs)
+
+        values = np.linspace(self.xrange[0], self.xrange[1], 100)
+        self.ax.fill_between(values, fu1(values), fn2(values), **custom_kwargs)
+
+    def show(self):
+        plt.grid(True)
+        img_plot(self.fig)
 
 
 def table(
@@ -198,6 +230,28 @@ def img_plot(fig=None):
     print(f"![Plot](data:image/png;base64,{img_str})")
 
 
+def mermaid_plugin(md: MarkdownIt):
+    default_fence = md.renderer.rules.get("fence", None)
+
+    def fence_with_mermaid(tokens, idx, options, env):
+        token = tokens[idx]
+        info = token.info.strip()
+        language = info.split()[0] if info else ""
+
+        if language == "mermaid":
+            # Render as a <pre> with class="mermaid"
+            return f'<pre class="mermaid">{md.utils.escapeHtml(token.content)}</pre>\n'
+        else:
+            # Fallback to the default fence rule for other languages
+            if default_fence:
+                return default_fence(tokens, idx, options, env)
+            else:
+                return f"<pre>{md.utils.escapeHtml(token.content)}</pre>\n"
+
+    # Override the fence rule
+    md.renderer.rules["fence"] = fence_with_mermaid
+
+
 def __render(code: list[str | list[str]]) -> str:
     rendered_lines = []
     line_no = 0
@@ -247,6 +301,7 @@ md = (
         },
     )
     .use(footnote.footnote_plugin)
+    .use(mermaid_plugin)
     .enable("table")
 )
 

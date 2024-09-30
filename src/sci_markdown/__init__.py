@@ -305,12 +305,15 @@ class SimpleHandler(BaseHTTPRequestHandler):
         self.wfile.write(html.encode("utf-8"))
 
 
+PORT = 8000
+
+
 def main() -> int:
     compile_markdown()
 
-    httpd = HTTPServer(("", 8000), SimpleHandler)
+    httpd = HTTPServer(("", PORT), SimpleHandler)
     try:
-        print("Starting server on port 8000")
+        print(f"Starting server on http://localhost:{PORT}")
         httpd.serve_forever()
     except KeyboardInterrupt:
         print("Keyboard interrupt received, exiting")

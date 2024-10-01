@@ -16,6 +16,12 @@ This is a paragraph.....
 This is a second paragraph.
 
 ```python exec
+some_var = 23
+```
+
+$$2.3 * 10 = py`print(some_var)`$$
+
+```python exec
 table(header=keys, rows=[values, values])
 ```
 
@@ -100,3 +106,4 @@ graph TD
     C -->|Two| E[Result 2]
 ```
 
+This is a paragraph with code within py`print("hi")` it

@@ -252,16 +252,61 @@ def mermaid_plugin(md: MarkdownIt):
     md.renderer.rules["fence"] = fence_with_mermaid
 
 
-def __render(code: list[str | list[str]]) -> str:
-    rendered_lines = []
+class Markdown:
+    def __init__(self, content: str):
+        self.content = content
+
+
+class Code:
+    def __init__(self, content: str):
+        self.content = content
+
+
+Token = Markdown | Code
+
+
+@functools.lru_cache(maxsize=32)
+def parse_source(src: str) -> list[Token]:
+    tokens = []
+    pos = 0
+    read_pos = 0
+    while read_pos < len(src):
+        if src[read_pos : read_pos + 3] == "py`":
+            tokens.append(Markdown(src[pos:read_pos] + " "))
+            pos = read_pos + 3
+            read_pos += 3
+            while src[read_pos] != "`":
+                read_pos += 1
+                if read_pos >= len(src):
+                    raise ValueError("Unclosed inline code block")
+            tokens.append(Code(src[pos:read_pos]))
+            pos = read_pos + 1
+
+        if src[read_pos : read_pos + 15] == "```python exec\n":
+            tokens.append(Markdown(src[pos:read_pos] + "\n"))
+            pos = read_pos + 15
+            read_pos += 15
+            while src[read_pos : read_pos + 4] != "\n```":
+                read_pos += 1
+                if read_pos >= len(src):
+                    raise ValueError("Unclosed code block")
+            tokens.append(Code(src[pos:read_pos]))
+            pos = read_pos + 4
+
+        read_pos += 1
+
+    return tokens
+
+
+def __render(code: list[Token]) -> str:
+    rendered_parts = []
     line_no = 0
-    for line in code:
-        if isinstance(line, list):
-            code_string = "\n".join(line)
+    for token in code:
+        if isinstance(token, Code):
             old_stdout = sys.stdout
             sys.stdout = mystdout = StringIO()
             try:
-                exec(code_string)
+                exec(token.content)
             except Exception as e:
                 cl, exc, tb = sys.exc_info()
                 line_number = traceback.extract_tb(tb)[-1][1]
@@ -280,14 +325,14 @@ def __render(code: list[str | list[str]]) -> str:
                 )
                 print(e)
                 print("</pre>")
-            rendered_lines.append(mystdout.getvalue())
+            rendered_parts.append(mystdout.getvalue())
             sys.stdout = old_stdout
-            line_no += len(line) + 2
+            line_no += len(token.content.split("\n")) + 2
         else:
-            rendered_lines.append(line)
+            rendered_parts.append(token.content)
             line_no += 1
 
-    return "\n".join(rendered_lines)
+    return "".join(rendered_parts)
 
 
 md = (
@@ -314,26 +359,9 @@ def read_source():
     return content
 
 
-@functools.lru_cache(maxsize=32)
 def compile_markdown(content: str):
-    lines = content.split("\n")
-    code = []
-    it = iter(lines)
-    for line in it:
-        if line.startswith("```python exec"):
-            line = next(it)
-            code_block = []
-            code_block.append(line)
-            line = next(it)
-            while not line.startswith("```"):
-                code_block.append(line)
-                line = next(it)
-            code.append(code_block)
-        else:
-            code.append(line)
-
-    new_content = __render(code)
-
+    tokens = parse_source(content)
+    new_content = __render(tokens)
     html = md.render(new_content)
     return html
 
@@ -377,3 +405,7 @@ async def ws_live_update(websocket: WebSocket):
 
 def main():
     uvicorn.run(app, host="localhost", port=8000)
+
+
+if __name__ == "__main__":
+    main()

@@ -295,6 +295,9 @@ def parse_source(src: str) -> list[Token]:
 
         read_pos += 1
 
+    if pos < len(src):
+        tokens.append(Markdown(src[pos:]))
+
     return tokens
 
 

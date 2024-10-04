@@ -196,15 +196,18 @@ def table(
             for j, cell in enumerate(row):
                 cells[i + 1][j + left_offset] = cell
 
+    def table_pstr(val: Any, *args, **kwargs) -> str:
+        return pstr(val, *args, **kwargs).replace("|", "&#124;")
+
     def print_line(line: list[Any], data_line=True):
         def escape_none(val: tuple[int, Any]) -> str:
             i, value = val
             if value is None:
                 return "<!-- -->"
             elif left_offset == 1 and i == 0 and data_line:
-                return "**" + pstr(value, precision) + "**"
+                return "**" + table_pstr(value, precision) + "**"
             else:
-                return pstr(value, precision)
+                return table_pstr(value, precision)
 
         print("|", " | ".join(map(escape_none, enumerate(line))), "|")
 

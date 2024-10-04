@@ -105,16 +105,23 @@ class Chartjs:
 
 
 class Graph:
-    def __init__(self, xrange=[-1, 1], yrange=[-1, 1]):
+    def __init__(self, xrange=[-1, 1], yrange=[-1, 1], resolution=100):
         self.xrange = xrange
         self.yrange = yrange
+        self.resolution = resolution
         self.fig, self.ax = plt.subplots()
+        self.fig.set_figwidth(10)
+        self.fig.set_figheight(7)
         self.ax.set_xlim(xrange)
         self.ax.set_ylim(yrange)
 
-    def plot(self, function: Callable[[float], float | int]):
-        values = np.linspace(self.xrange[0], self.xrange[1], 100)
-        self.ax.plot(values, function(values))
+    def plot(self, function):
+        keys = np.linspace(self.xrange[0], self.xrange[1], self.resolution)
+        values = function(keys)
+        if isinstance(values, (int, float)):
+            values = np.linspace(values, values, self.resolution)
+
+        self.ax.plot(keys, values)
 
     def plot_between(
         self,

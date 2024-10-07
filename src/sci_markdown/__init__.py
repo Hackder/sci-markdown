@@ -12,7 +12,7 @@ from typing import Any, Callable
 import matplotlib.pyplot as plt
 import numpy as np
 import uvicorn
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from markdown_it import MarkdownIt
 from mdit_py_plugins import footnote
@@ -353,6 +353,7 @@ def __render(code: list[Token]) -> str:
             rendered_parts.append(token.content)
             line_no += 1
 
+    plt.close("all")
     return "".join(rendered_parts)
 
 
@@ -396,32 +397,33 @@ async def read_root():
         return f.read()
 
 
-@app.get("/markdown", response_class=HTMLResponse)
-async def read_markdown():
-    content = read_source()
-    return compile_markdown(content)
+sockets = []
 
 
 @app.websocket("/live-update")
 async def ws_live_update(websocket: WebSocket):
+    global sockets
     await websocket.accept()
-    source = read_source()
-    while True:
-        await asyncio.sleep(0.5)
-
-        try:
+    sockets.append(websocket)
+    source = None
+    try:
+        while True:
+            await asyncio.sleep(0.5)
             await websocket.send_json({"type": "heartbeat"})
-        except Exception:
-            break
 
-        new_source = read_source()
-        if new_source == source:
-            continue
+            new_source = read_source()
+            if new_source == source:
+                continue
 
-        source = new_source
-        compiled = compile_markdown(new_source)
+            source = new_source
+            try:
+                compiled = compile_markdown(new_source)
+                await websocket.send_json({"type": "update", "data": compiled})
+            except ValueError as e:
+                await websocket.send_json({"type": "error", "data": str(e)})
 
-        await websocket.send_json({"type": "update", "data": compiled})
+    except WebSocketDisconnect:
+        sockets.remove(websocket)
 
 
 def main():

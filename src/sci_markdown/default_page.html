@@ -22,6 +22,8 @@
     body,
     html {
       margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif,
+        "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
     }
 
     .markdown-body {
@@ -42,6 +44,26 @@
     thead th:empty {
       border: thin solid red !important;
       display: none;
+    }
+
+    .popup-error {
+      position: fixed;
+      top: 4em;
+      width: 42rem;
+      left: 50%;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      background-color: #CF0001;
+      color: white;
+      transition: transform 0.3s;
+      transform: translate(-50%, -150%);
+      padding: 1em 1.5em;
+      min-height: 5em;
+      font-family: monospace;
+    }
+
+    .popup-open {
+      transform: translate(-50%, 0);
     }
 
     @media (max-width: 767px) {
@@ -88,24 +110,6 @@
       mermaid.run({querySelector: ".mermaid"})
     }
 
-    let abortController = null;
-    async function update() {
-      if (abortController !== null) {
-        abortController.abort();
-      }
-
-      abortController = new AbortController();
-
-      const html = await fetch("/markdown", {
-        method: "GET",
-        signal: abortController.signal
-      }).then(res => res.text())
-
-      abortController = null;
-
-      renderHtml(html);
-    }
-
     let retries = 0;
     function setupListener() {
       if (retries > 3) return;
@@ -113,15 +117,19 @@
       const ws = new WebSocket("ws://localhost:8000/live-update");
 
       ws.onmessage = function (event) {
+        const error = document.querySelector(".popup-error");
         const message = JSON.parse(event.data);
         if (message.type === "update") {
           renderHtml(message.data);
+          error.classList.remove("popup-open");
+        } else if (message.type === "error") {
+          error.textContent = message.data;
+          error.classList.add("popup-open");
         }
       };
 
       ws.onopen = function (event) {
         console.log("Connected to websocket");
-        update();
         retries = 0;
       };
 
@@ -151,6 +159,8 @@
 <body>
   <article class="markdown-body">
   </article>
+  <div class="popup-error">
+  </div>
 </body>
 
 </html>

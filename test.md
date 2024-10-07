@@ -1,4 +1,7 @@
 ```python exec
+import numpy as np
+import matplotlib.pyplot as plt
+
 keys = range(1, 20)
 values = np.random.random(len(keys)) * 10
 
@@ -40,6 +43,16 @@ table(left_header=["day 1", "day 2"], rows=[values, values])
 
 ```python exec
 table(left_header=keys, cols=[values])
+```
+
+```python exec
+def a():
+    return 1
+
+def b():
+    return a() + 1
+
+pprint(b())
 ```
 
 

@@ -314,12 +314,20 @@ def parse_source(src: str) -> list[Token]:
 def __render(code: list[Token]) -> str:
     rendered_parts = []
     line_no = 0
+    global_ctx = {
+        "pprint": pprint,
+        "pstr": pstr,
+        "table": table,
+        "Chartjs": Chartjs,
+        "Graph": Graph,
+        "img_plot": img_plot,
+    }
     for token in code:
         if isinstance(token, Code):
             old_stdout = sys.stdout
             sys.stdout = mystdout = StringIO()
             try:
-                exec(token.content)
+                exec(token.content, global_ctx)
             except Exception as e:
                 cl, exc, tb = sys.exc_info()
                 line_number = traceback.extract_tb(tb)[-1][1]

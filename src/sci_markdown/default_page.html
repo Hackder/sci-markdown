@@ -48,22 +48,22 @@
 
     .popup-error {
       position: fixed;
-      top: 4em;
+      top: 1em;
       width: 42rem;
       left: 50%;
       border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.5);
       background-color: #CF0001;
       color: white;
       transition: transform 0.3s;
       transform: translate(-50%, -200%);
       padding: 1em 1.5em;
-      min-height: 5em;
       font-family: monospace;
     }
 
     .popup-open {
       transform: translate(-50%, 0);
+      box-shadow: 0 0 0 100vmax rgba(255, 255, 255, 0.5);
     }
 
     @media (max-width: 767px) {

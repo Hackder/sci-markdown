@@ -275,6 +275,10 @@ class Code:
 Token = Markdown | Code
 
 
+def what_line(until_now: str) -> int:
+    return until_now.count("\n") + 1
+
+
 @functools.lru_cache(maxsize=32)
 def parse_source(src: str) -> list[Token]:
     tokens = []
@@ -286,9 +290,15 @@ def parse_source(src: str) -> list[Token]:
             pos = read_pos + 3
             read_pos += 3
             while src[read_pos] != "`":
+                if src[read_pos] == "\n":
+                    raise ValueError(
+                        f"Unclosed inline code block, on line {what_line(src[:read_pos])}"
+                    )
                 read_pos += 1
                 if read_pos >= len(src):
-                    raise ValueError("Unclosed inline code block")
+                    raise ValueError(
+                        f"Unclosed inline code block. on line {what_line(src[:pos])}"
+                    )
             tokens.append(Code(src[pos:read_pos]))
             pos = read_pos + 1
 
@@ -299,7 +309,9 @@ def parse_source(src: str) -> list[Token]:
             while src[read_pos : read_pos + 4] != "\n```":
                 read_pos += 1
                 if read_pos >= len(src):
-                    raise ValueError("Unclosed code block")
+                    raise ValueError(
+                        f"Unclosed code block. Opened on line {what_line(src[:pos])}"
+                    )
             tokens.append(Code(src[pos:read_pos]))
             pos = read_pos + 4
 

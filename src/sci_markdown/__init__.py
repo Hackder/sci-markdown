@@ -76,7 +76,7 @@ class Chartjs:
         self.chart_type = chart_type
         self.datasets = []
 
-    def plot(self, data, label=None, char_type=None, color=None):
+    def plot(self, data, label=None, chart_type=None, color=None, stepped=None):
         dataset = {
             "data": list(data),
         }
@@ -84,11 +84,14 @@ class Chartjs:
         if label is not None:
             dataset["label"] = label
 
-        if char_type is not None:
-            dataset["type"] = char_type
+        if chart_type is not None:
+            dataset["type"] = chart_type
 
         if color is not None:
             dataset["color"] = color
+
+        if stepped is not None:
+            dataset["stepped"] = stepped
 
         self.datasets.append(dataset)
 
@@ -118,7 +121,7 @@ class Chartjs:
                 "scales": {
                     "y": {
                         "beginAtZero": True,
-                    }
+                    },
                 },
             },
         }

@@ -18,6 +18,29 @@ from markdown_it import MarkdownIt
 from mdit_py_plugins import footnote
 
 
+def simplify_fraction(numer: int, denom: int):
+    def gcd(a, b):
+        while b:
+            a, b = b, a % b
+        return a
+
+    common_divisor = gcd(numer, denom)
+    return numer // common_divisor, denom // common_divisor
+
+
+def frac(x: float, precision=2) -> str:
+    for numer in range(-100, 100):
+        if numer == 0:
+            continue
+        for denom in range(1, 100):
+            if abs(x - numer / denom) < 1e-6:
+                n, d = simplify_fraction(numer, denom)
+                return rf"$\frac{{{n}}}{{{d}}}$"
+
+    num_str = f"{x:.{precision}f}".rstrip("0").rstrip(".")
+    return f"${num_str}$"
+
+
 def pstr(val, precision=2) -> str:
     if isinstance(val, float):
         return f"{val:.{precision}f}"
@@ -327,6 +350,7 @@ def __render(code: list[Token]) -> str:
     rendered_parts = []
     line_no = 0
     global_ctx = {
+        "frac": frac,
         "pprint": pprint,
         "pstr": pstr,
         "table": table,

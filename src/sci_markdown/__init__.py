@@ -29,10 +29,10 @@ def simplify_fraction(numer: int, denom: int):
 
 
 def frac(x: float, precision=2) -> str:
-    for numer in range(-100, 100):
+    for numer in range(-256, 256):
         if numer == 0:
             continue
-        for denom in range(1, 100):
+        for denom in range(1, 256):
             if abs(x - numer / denom) < 1e-6:
                 n, d = simplify_fraction(numer, denom)
                 if n < 0:

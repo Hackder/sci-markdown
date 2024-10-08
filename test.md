@@ -22,6 +22,11 @@ This is a second paragraph.
 some_var = 23
 ```
 
+```python exec
+value = -1/16
+print(frac(value))
+```
+
 $$2.3 * 10 = py`print(some_var)`$$
 
 ```python exec

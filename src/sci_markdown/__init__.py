@@ -35,7 +35,10 @@ def frac(x: float, precision=2) -> str:
         for denom in range(1, 100):
             if abs(x - numer / denom) < 1e-6:
                 n, d = simplify_fraction(numer, denom)
-                return rf"$\frac{{{n}}}{{{d}}}$"
+                if n < 0:
+                    return rf"-$\frac{{{-n}}}{{{d}}}$"
+                else:
+                    return rf"$\frac{{{n}}}{{{d}}}$"
 
     num_str = f"{x:.{precision}f}".rstrip("0").rstrip(".")
     return f"${num_str}$"

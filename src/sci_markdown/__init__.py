@@ -298,7 +298,8 @@ class Markdown:
 
 
 class Code:
-    def __init__(self, content: str):
+    def __init__(self, tags: list[str], content: str):
+        self.tags = tags
         self.content = content
 
 
@@ -307,6 +308,9 @@ Token = Markdown | Code
 
 def what_line(until_now: str) -> int:
     return until_now.count("\n") + 1
+
+
+supported_tags = ["exec", "exec-show"]
 
 
 @functools.lru_cache(maxsize=32)
@@ -332,17 +336,38 @@ def parse_source(src: str) -> list[Token]:
             tokens.append(Code(src[pos:read_pos]))
             pos = read_pos + 1
 
-        if src[read_pos : read_pos + 15] == "```python exec\n":
+        if src[read_pos : read_pos + 9] == "```python":
             tokens.append(Markdown(src[pos:read_pos] + "\n"))
-            pos = read_pos + 15
-            read_pos += 15
+            pos = read_pos + 9
+            read_pos += 9
+            while src[read_pos] != "\n":
+                read_pos += 1
+                if read_pos >= len(src):
+                    raise ValueError(
+                        f"Unclosed code block. Opened on line {what_line(src[:pos])}"
+                    )
+
+            tags = [tag.strip() for tag in src[pos:read_pos].split(",") if tag.strip()]
+            if any(tag not in supported_tags for tag in tags):
+                raise ValueError(
+                    f"Unsupported tag in code block. Opened on line {what_line(src[:pos])}"
+                )
+
+            if len(tags) > 1:
+                raise ValueError(
+                    f"Multiple tags in code block. Opened on line {what_line(src[:pos])}"
+                )
+
+            pos = read_pos + 1
+
             while src[read_pos : read_pos + 4] != "\n```":
                 read_pos += 1
                 if read_pos >= len(src):
                     raise ValueError(
                         f"Unclosed code block. Opened on line {what_line(src[:pos])}"
                     )
-            tokens.append(Code(src[pos:read_pos]))
+
+            tokens.append(Code(tags, src[pos:read_pos]))
             pos = read_pos + 4
 
         read_pos += 1
@@ -367,6 +392,18 @@ def __render(code: list[Token]) -> str:
     }
     for token in code:
         if isinstance(token, Code):
+            if token.tags == []:
+                rendered_parts.append("```python\n")
+                rendered_parts.append(token.content)
+                rendered_parts.append("\n```\n")
+                continue
+
+            if token.tags == ["exec-show"]:
+                rendered_parts.append("```python\n")
+                rendered_parts.append(token.content)
+                rendered_parts.append("\n```")
+                rendered_parts.append('\n<div class="exec-show">\n')
+
             old_stdout = sys.stdout
             sys.stdout = mystdout = StringIO()
             try:
@@ -389,15 +426,36 @@ def __render(code: list[Token]) -> str:
                 )
                 print(e)
                 print("</pre>")
-            rendered_parts.append(mystdout.getvalue())
+            code_output = mystdout.getvalue()
+            code_html = codeMd.render(code_output)
+            rendered_parts.append(code_html)
             sys.stdout = old_stdout
             line_no += len(token.content.split("\n")) + 2
+
+            if token.tags == ["exec-show"]:
+                rendered_parts.append("\n</div>\n")
         else:
             rendered_parts.append(token.content)
             line_no += 1
 
     plt.close("all")
     return "".join(rendered_parts)
+
+
+codeMd = (
+    MarkdownIt(
+        "commonmark",
+        {
+            "html": True,
+            "breaks": True,
+            "linkify": True,
+            "typographer": True,
+        },
+    )
+    .use(footnote.footnote_plugin)
+    .use(mermaid_plugin)
+    .enable("table")
+)
 
 
 md = (

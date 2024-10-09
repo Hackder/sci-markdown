@@ -70,6 +70,28 @@
       display: none;
     }
 
+    .exec-show {
+      padding: 1em;
+      margin-top: -1em;
+      background-color: #F6F8FA;
+      border-top: 1px solid #ccc;
+      position: relative;
+      font-family: monospace;
+    }
+
+    .exec-show::before {
+      content: " Output: ";
+      display: block;
+      box-shadow: 0 0 0 5px #F6F8FA;
+      position: absolute;
+      font-weight: bold;
+      color: #333;
+      font-size: 0.6em;
+      background-color: #F6F8FA;
+      top: -1em;
+
+    }
+
     @media (max-width: 767px) {
       .markdown-body {
         padding: 15px;

@@ -39,6 +39,8 @@ mdit-py-plugins==0.4.2
     # via sci-markdown
 mdurl==0.1.2
     # via markdown-it-py
+networkx==3.3
+    # via sci-markdown
 numpy==2.1.1
     # via contourpy
     # via matplotlib

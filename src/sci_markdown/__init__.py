@@ -267,6 +267,7 @@ def img_plot(fig=None):
 
     buffer.close()
     print(f"![Plot](data:image/png;base64,{img_str})")
+    plt.close()
 
 
 def mermaid_plugin(md: MarkdownIt):

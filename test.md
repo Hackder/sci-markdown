@@ -15,6 +15,12 @@ def median(vals):
 
 # This is a markdown title
 
+```python exec
+table(left_header=["1", "2"], header=["A", "B"], rows=[[1, 2], [3, 4]])
+print()
+table(left_header=["1", "2"], header=["A", "B"], rows=[[1, 2], [3, 4]], corner="x")
+```
+
 This is a paragraph.....
 This is a second paragraph.
 
@@ -29,9 +35,6 @@ print(frac(value))
 
 $$2.3 * 10 = py`print(some_var)`$$
 
-```python exec
-table(left_header=["1", "2"], header=["A", "B"], rows=[[1, 2], [3, 4]])
-```
 
 ```python exec
 table(header=keys, rows=[values, values])
@@ -130,3 +133,15 @@ graph TD
 ```
 
 This is a paragraph with code within py`print("hi")` it
+
+```python
+print("hi")
+```
+
+```python exec-show
+print("hi")
+for i in range(10):
+    print(i)
+```
+
+

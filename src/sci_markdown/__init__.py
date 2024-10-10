@@ -239,7 +239,7 @@ def table(
         def escape_none(val: tuple[int, Any]) -> str:
             i, value = val
             if value is None:
-                return "<!-- -->"
+                return "&nbsp;"
             elif left_offset == 1 and i == 0 and data_line:
                 return "**" + table_pstr(value, precision) + "**"
             else:

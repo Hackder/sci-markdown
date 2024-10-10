@@ -298,7 +298,8 @@ class Markdown:
 
 
 class Code:
-    def __init__(self, tags: list[str], content: str):
+    def __init__(self, style: str, tags: list[str], content: str):
+        self.style = style
         self.tags = tags
         self.content = content
 
@@ -333,7 +334,7 @@ def parse_source(src: str) -> list[Token]:
                     raise ValueError(
                         f"Unclosed inline code block. on line {what_line(src[:pos])}"
                     )
-            tokens.append(Code(src[pos:read_pos]))
+            tokens.append(Code("inline", ["exec"], src[pos:read_pos]))
             pos = read_pos + 1
 
         if src[read_pos : read_pos + 9] == "```python":
@@ -367,7 +368,7 @@ def parse_source(src: str) -> list[Token]:
                         f"Unclosed code block. Opened on line {what_line(src[:pos])}"
                     )
 
-            tokens.append(Code(tags, src[pos:read_pos]))
+            tokens.append(Code("block", tags, src[pos:read_pos]))
             pos = read_pos + 4
 
         read_pos += 1
@@ -426,10 +427,13 @@ def __render(code: list[Token]) -> str:
                 )
                 print(e)
                 print("</pre>")
-            code_output = mystdout.getvalue()
-            code_html = codeMd.render(code_output)
-            rendered_parts.append(code_html)
             sys.stdout = old_stdout
+            code_output = mystdout.getvalue()
+            if token.style == "block":
+                code_html = codeMd.render(code_output)
+                rendered_parts.append(code_html)
+            else:
+                rendered_parts.append(code_output)
             line_no += len(token.content.split("\n")) + 2
 
             if token.tags == ["exec-show"]:

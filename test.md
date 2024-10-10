@@ -30,6 +30,10 @@ print(frac(value))
 $$2.3 * 10 = py`print(some_var)`$$
 
 ```python exec
+table(left_header=["1", "2"], header=["A", "B"], rows=[[1, 2], [3, 4]])
+```
+
+```python exec
 table(header=keys, rows=[values, values])
 ```
 
@@ -49,6 +53,7 @@ table(left_header=["day 1", "day 2"], rows=[values, values])
 ```python exec
 table(left_header=keys, cols=[values])
 ```
+
 
 ```python exec
 def a():

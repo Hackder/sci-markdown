@@ -58,10 +58,12 @@
       transition: transform 0.3s;
       transform: translate(-50%, -200%);
       padding: 1em 1.5em;
+      display: none;
       font-family: monospace;
     }
 
     .popup-open {
+      display: block;
       transform: translate(-50%, 0);
       box-shadow: 0 0 0 100vmax rgba(255, 255, 255, 0.5);
     }
@@ -71,7 +73,7 @@
     }
 
     .exec-show {
-      padding: 1em;
+      padding: 2em;
       margin-top: -1em;
       background-color: #F6F8FA;
       border-top: 1px solid #ccc;
@@ -102,7 +104,7 @@
     }
 
     @media print {
-      code {
+      pre {
         break-inside: avoid;
       }
     }

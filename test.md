@@ -144,4 +144,4 @@ for i in range(10):
     print(i)
 ```
 
-
+![image](/static/squirrel.jpg)

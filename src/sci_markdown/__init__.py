@@ -14,6 +14,7 @@ import numpy as np
 import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from markdown_it import MarkdownIt
 from mdit_py_plugins import footnote
 
@@ -494,6 +495,7 @@ def compile_markdown(content: str):
 
 
 app = FastAPI()
+app.mount("/static", StaticFiles(directory=os.getcwd()), name="static")
 
 
 @app.get("/", response_class=HTMLResponse)

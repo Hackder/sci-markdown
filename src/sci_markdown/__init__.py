@@ -381,7 +381,7 @@ global_cache = dict()
 def __render(code: list[Token]) -> str:
     global global_cache
     token_contents = [token.content for token in code if isinstance(token, Code)]
-    for key in global_cache.keys():
+    for key in list(global_cache.keys()):
         if key not in token_contents:
             global_cache.pop(key)
 

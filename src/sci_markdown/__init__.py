@@ -312,7 +312,7 @@ def what_line(until_now: str) -> int:
     return until_now.count("\n") + 1
 
 
-supported_tags = ["exec", "exec-show"]
+supported_tags = ["exec", "exec-show", "cached"]
 
 
 @functools.lru_cache(maxsize=32)
@@ -355,11 +355,6 @@ def parse_source(src: str) -> list[Token]:
                     f"Unsupported tag in code block. Opened on line {what_line(src[:pos])}"
                 )
 
-            if len(tags) > 1:
-                raise ValueError(
-                    f"Multiple tags in code block. Opened on line {what_line(src[:pos])}"
-                )
-
             pos = read_pos + 1
 
             while src[read_pos : read_pos + 4] != "\n```":
@@ -380,7 +375,16 @@ def parse_source(src: str) -> list[Token]:
     return tokens
 
 
+global_cache = dict()
+
+
 def __render(code: list[Token]) -> str:
+    global global_cache
+    token_contents = [token.content for token in code if isinstance(token, Code)]
+    for key in global_cache.keys():
+        if key not in token_contents:
+            global_cache.pop(key)
+
     rendered_parts = []
     line_no = 0
     global_ctx = {
@@ -400,36 +404,42 @@ def __render(code: list[Token]) -> str:
                 rendered_parts.append("\n```\n")
                 continue
 
-            if token.tags == ["exec-show"]:
+            if "exec-show" in token.tags:
                 rendered_parts.append("```python\n")
                 rendered_parts.append(token.content)
                 rendered_parts.append("\n```")
                 rendered_parts.append('\n<div class="exec-show">\n')
 
-            old_stdout = sys.stdout
-            sys.stdout = mystdout = StringIO()
-            try:
-                exec(token.content, global_ctx)
-            except Exception as e:
-                cl, exc, tb = sys.exc_info()
-                line_number = traceback.extract_tb(tb)[-1][1]
-                file_name = traceback.extract_tb(tb)[-1][0]
+            if "cached" in token.tags and token.content in global_cache:
+                code_output = global_cache[token.content]
+            else:
+                old_stdout = sys.stdout
+                sys.stdout = mystdout = StringIO()
+                try:
+                    exec(token.content, global_ctx)
+                except Exception as e:
+                    cl, exc, tb = sys.exc_info()
+                    line_number = traceback.extract_tb(tb)[-1][1]
+                    file_name = traceback.extract_tb(tb)[-1][0]
 
-                if len(file_name) <= 8:
-                    line_number += line_no + 1
+                    if len(file_name) <= 8:
+                        line_number += line_no + 1
 
-                file_name_text = ""
-                if len(file_name) > 8:
-                    file_name_text = f"in {file_name}"
+                    file_name_text = ""
+                    if len(file_name) > 8:
+                        file_name_text = f"in {file_name}"
 
-                print('<pre class="python-error">')
-                print(
-                    f"<small>Exception on line: {line_number} {file_name_text}</small>"
-                )
-                print(e)
-                print("</pre>")
-            sys.stdout = old_stdout
-            code_output = mystdout.getvalue()
+                    print('<pre class="python-error">')
+                    print(
+                        f"<small>Exception on line: {line_number} {file_name_text}</small>"
+                    )
+                    print(e)
+                    print("</pre>")
+                sys.stdout = old_stdout
+                code_output = mystdout.getvalue()
+                if "cached" in token.tags:
+                    global_cache[token.content] = code_output
+
             if token.style == "block":
                 code_html = codeMd.render(code_output)
                 rendered_parts.append(code_html)
@@ -437,7 +447,7 @@ def __render(code: list[Token]) -> str:
                 rendered_parts.append(code_output)
             line_no += len(token.content.split("\n")) + 2
 
-            if token.tags == ["exec-show"]:
+            if "exec-show" in token.tags:
                 rendered_parts.append("\n</div>\n")
         else:
             rendered_parts.append(token.content)
